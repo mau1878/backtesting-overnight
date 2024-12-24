@@ -10,10 +10,10 @@ def fetch_data(tickers, start_date, end_date):
     data = yf.download(tickers, start=start_date, end=end_date)
     return data
 
-def calculate_returns(data, strategy):
+def calculate_returns(data, strategy, tickers):
     """Calculates cumulative returns for a given strategy."""
-    returns = pd.DataFrame()
-    for ticker in data.columns.get_level_values(1).unique():
+    returns = pd.DataFrame(index=data.index)  # Initialize with the correct index
+    for ticker in tickers:
         try:
             if strategy == 'open_to_close':
                 daily_returns = data['Close', ticker] / data['Open', ticker] - 1
@@ -29,6 +29,7 @@ def calculate_returns(data, strategy):
             returns[ticker] = cumulative_returns
         except KeyError as e:
             st.error(f"Error calculating returns for {ticker}: {e}. Ensure the ticker has the required data.")
+            returns[ticker] = pd.Series(1, index=data.index) # Add a series of 1s to avoid errors
             continue
     return returns
 
@@ -95,9 +96,9 @@ def main():
             if data.empty:
                 st.error("No se encontraron datos para los símbolos y el rango de fechas seleccionados.")
                 return
-            returns_open_to_close = calculate_returns(data, 'open_to_close')
-            returns_close_to_open = calculate_returns(data, 'close_to_open')
-            returns_buy_and_hold = calculate_returns(data, 'buy_and_hold')
+            returns_open_to_close = calculate_returns(data, 'open_to_close', tickers)
+            returns_close_to_open = calculate_returns(data, 'close_to_open', tickers)
+            returns_buy_and_hold = calculate_returns(data, 'buy_and_hold', tickers)
             plot_investment_value(returns_open_to_close, returns_close_to_open, returns_buy_and_hold, start_date, end_date, initial_investment, log_scale)
         except Exception as e:
             st.error(f"Ocurrió un error: {e}")
