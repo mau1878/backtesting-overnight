@@ -14,23 +14,30 @@ def calculate_returns(data, strategy):
     """Calculates cumulative returns for a given strategy."""
     returns = pd.DataFrame()
     for ticker in data.columns.get_level_values(1).unique():
-        if strategy == 'open_to_close':
-            daily_returns = data['Close', ticker] / data['Open', ticker] - 1
-        elif strategy == 'close_to_open':
-            daily_returns = data['Open', ticker].shift(-1) / data['Close', ticker] - 1
-            daily_returns = daily_returns.dropna()
-        elif strategy == 'buy_and_hold':
-            daily_returns = data['Adj Close', ticker].pct_change()
-            daily_returns = daily_returns.dropna()
-        else:
-            raise ValueError("Invalid strategy")
-        cumulative_returns = (1 + daily_returns).cumprod()
-        returns[ticker] = cumulative_returns
+        try:
+            if strategy == 'open_to_close':
+                daily_returns = data['Close', ticker] / data['Open', ticker] - 1
+            elif strategy == 'close_to_open':
+                daily_returns = data['Open', ticker].shift(-1) / data['Close', ticker] - 1
+                daily_returns = daily_returns.dropna()
+            elif strategy == 'buy_and_hold':
+                daily_returns = data['Adj Close', ticker].pct_change()
+                daily_returns = daily_returns.dropna()
+            else:
+                raise ValueError("Invalid strategy")
+            cumulative_returns = (1 + daily_returns).cumprod()
+            returns[ticker] = cumulative_returns
+        except KeyError as e:
+            st.error(f"Error calculating returns for {ticker}: {e}. Ensure the ticker has the required data.")
+            continue
     return returns
 
 def plot_investment_value(returns_open_to_close, returns_close_to_open, returns_buy_and_hold, start_date, end_date, initial_investment, log_scale=False):
     """Plots cumulative investment value for all strategies."""
     fig = go.Figure()
+
+    all_values = []
+
     for ticker in returns_open_to_close.columns:
         investment_value_open_to_close = returns_open_to_close[ticker] * initial_investment
         investment_value_close_to_open = returns_close_to_open[ticker] * initial_investment
@@ -39,6 +46,10 @@ def plot_investment_value(returns_open_to_close, returns_close_to_open, returns_
         fig.add_trace(go.Scatter(x=returns_open_to_close.index, y=investment_value_open_to_close, mode='lines', name=f'{ticker} - Apertura a Cierre'))
         fig.add_trace(go.Scatter(x=returns_close_to_open.index, y=investment_value_close_to_open, mode='lines', name=f'{ticker} - Cierre a Apertura'))
         fig.add_trace(go.Scatter(x=returns_buy_and_hold.index, y=investment_value_buy_and_hold, mode='lines', name=f'{ticker} - Comprar y Mantener'))
+
+        all_values.extend(investment_value_open_to_close)
+        all_values.extend(investment_value_close_to_open)
+        all_values.extend(investment_value_buy_and_hold)
 
     # Add horizontal line at initial investment
     fig.add_trace(go.Scatter(x=[returns_open_to_close.index[0], returns_open_to_close.index[-1]], y=[initial_investment, initial_investment],
@@ -51,11 +62,6 @@ def plot_investment_value(returns_open_to_close, returns_close_to_open, returns_
                       yaxis_type="log" if log_scale else None)
 
     if log_scale:
-        all_values = []
-        for ticker in returns_open_to_close.columns:
-            all_values.extend(returns_open_to_close[ticker] * initial_investment)
-            all_values.extend(returns_close_to_open[ticker] * initial_investment)
-            all_values.extend(returns_buy_and_hold[ticker] * initial_investment)
         all_values.append(initial_investment)
         all_values = np.array(all_values)
 
