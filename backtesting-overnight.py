@@ -40,17 +40,22 @@ def plot_investment_value(returns_open_to_close, returns_close_to_open, returns_
     all_values = []
 
     for ticker in returns_open_to_close.columns:
-        investment_value_open_to_close = returns_open_to_close[ticker] * initial_investment
-        investment_value_close_to_open = returns_close_to_open[ticker] * initial_investment
-        investment_value_buy_and_hold = returns_buy_and_hold[ticker] * initial_investment
 
-        fig.add_trace(go.Scatter(x=returns_open_to_close.index, y=investment_value_open_to_close, mode='lines', name=f'{ticker} - Apertura a Cierre'))
-        fig.add_trace(go.Scatter(x=returns_close_to_open.index, y=investment_value_close_to_open, mode='lines', name=f'{ticker} - Cierre a Apertura'))
-        fig.add_trace(go.Scatter(x=returns_buy_and_hold.index, y=investment_value_buy_and_hold, mode='lines', name=f'{ticker} - Comprar y Mantener'))
+        # Check if the ticker has valid data for each strategy
+        if ticker in returns_open_to_close:
+            investment_value_open_to_close = returns_open_to_close[ticker] * initial_investment
+            fig.add_trace(go.Scatter(x=returns_open_to_close.index, y=investment_value_open_to_close, mode='lines', name=f'{ticker} - Apertura a Cierre'))
+            all_values.extend(investment_value_open_to_close)
 
-        all_values.extend(investment_value_open_to_close)
-        all_values.extend(investment_value_close_to_open)
-        all_values.extend(investment_value_buy_and_hold)
+        if ticker in returns_close_to_open:
+            investment_value_close_to_open = returns_close_to_open[ticker] * initial_investment
+            fig.add_trace(go.Scatter(x=returns_close_to_open.index, y=investment_value_close_to_open, mode='lines', name=f'{ticker} - Cierre a Apertura'))
+            all_values.extend(investment_value_close_to_open)
+
+        if ticker in returns_buy_and_hold:
+            investment_value_buy_and_hold = returns_buy_and_hold[ticker] * initial_investment
+            fig.add_trace(go.Scatter(x=returns_buy_and_hold.index, y=investment_value_buy_and_hold, mode='lines', name=f'{ticker} - Comprar y Mantener'))
+            all_values.extend(investment_value_buy_and_hold)
 
     # Add horizontal line at initial investment
     fig.add_trace(go.Scatter(x=[returns_open_to_close.index[0], returns_open_to_close.index[-1]], y=[initial_investment, initial_investment],
