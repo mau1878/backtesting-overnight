@@ -1,6 +1,6 @@
-streamlit as st
-yfinance as yf
-pandas as pd
+streamlit
+yfinance
+pandas
 plotly
 datetime
 numpy
